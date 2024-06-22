@@ -1,14 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const User = require('../models/User');
 
 // Route to Get all tasks
-router.get('/', async (req, res) => {
+router.get('/:id', async (req, res) => {
+    // Fetch all tasks from the database
     try {
-        const tasks = await Task.find();    // Fetch all tasks from the database
-        res.json(tasks);                    // Send the tasks as a JSON response
-    } catch (err) {
-        res.status(500).send('Server Error');
+        const tasks = await Task.find({ user: req.params.id }).sort({ createdAt: -1}); //Find the task according user ID and descending order it
+        if(tasks.length !== 0) {
+            res.status(200).json({ tasks });
+        } else {
+            res.status(200).json({ message: "User haven't write any Tasks"});
+        }
+    }
+    catch(err) {
+        res.status(500).json({message:`Server Error during getting tasks. Error: ${err}` });
     }
 });
 
@@ -22,55 +29,70 @@ router.get('/search', async (req, res) => {
         }); 
         res.json(tasks);  // Send the matching tasks as a JSON response
     } catch (err) {
-        res.status(500).send('Server Error during searching task'); 
+        res.status(500).json({message:`Server Error during searching task. Error: ${err}` }); 
     }
 });
 
 // Route to add a new task
 router.post('/', async (req, res) => {
-
-    // Get task details from the request body
-    const { text, status } = req.body; 
     try {
-        const newTask = new Task({ text, status }); // Create a new task with the provided details
-        await newTask.save();                       // Save the task to the database
-        res.json(newTask);                          // Send the newly created task as a JSON response
-    } catch (err) {
-        res.status(500).send('Server Error during Adding new task');
-    }
-});
+        const { title, note, email } = req.body;
 
-// Route to update an existing task
-router.put('/:id', async (req, res) => {
-    
-    const { status } = req.body; // Get the new status from the request body
-    try {
-        
-        const task = await Task.findById(req.params.id); // Find the task by ID
-        if (!task) { 
-            // If task not found, send a 404 response
-            return res.status(404).json({ msg: 'Task not found' });
+        // Find the user by email
+        const existUser = await User.findOne({ email });
+        if (!existUser) {
+            return res.status(404).json({ message: 'User not found.' });
         }
-        task.status = status;   // Update the task status
-        await task.save();      // Save the updated task to the database
-        res.json(task);         // Send the updated task as a JSON response
+
+        // Create a new task with the provided details
+        const newTask = new Task({ title, note, user: existUser._id });
+
+        // Save the task to the database
+        await newTask.save();
+
+        // Add the new task to the user's tasks array
+        existUser.tasks.push(newTask._id);
+        await existUser.save();
+
+        // Respond with the newly created task
+        return res.status(200).json({ newTask });
     } catch (err) {
-        res.status(500).send('Server Error during updating task');
+        console.error(`Server Error during Adding new task. Error: ${err}`);
+        return res.status(500).json({ message: `Server Error during Adding new task. Error: ${err.message}` });
     }
 });
 
-// Route to delete an existing task
+// Route to update task
+router.put('/:id', async (req, res) => {
+    try {
+        const { title, note, email } = req.body;
+        const existUser = await User.findOne({ email }); // Find the user by email
+        if (existUser) {
+            const updatedTask = await Task.findByIdAndUpdate(req.params.id, { title, note }, { new: true });
+            res.status(200).json({ updatedTask });
+        }
+    } catch (err) {
+        console.error(`Server Error during Adding new task. Error: ${err}`);
+        return res.status(500).json({ message: `Server Error during Updating task. Error: ${err.message}` });
+    }
+});
+
+// Route to update task
 router.delete('/:id', async (req, res) => {
     try {
-         
-        const task = await Task.findById(req.params.id); // Find the task by ID
-        if (!task) {
-            return res.status(404).json({ msg: 'Task not found' }); // If task not found, send a 404 response
+        const { email } = req.body;
+        const existUser = await User.findOneAndUpdate(
+            { email },
+            { $pull: { tasks: req.params.id}}
+        );
+        if (existUser) {
+            await Task.findByIdAndDelete(req.params.id).then(() => {
+                res.status(200).json({ message: "Task has been Deleted." });
+            })
         }
-        await task.remove(); // Remove the task from the database
-        res.json({ msg: 'Task removed' }); // Send a success message as a JSON response
     } catch (err) {
-        res.status(500).send('Server Error during deleting existing task');
+        console.error(`Server Error during Adding new task. Error: ${err}`);
+        return res.status(500).json({ message: `Server Error during Deleting task. Error: ${err.message}` });
     }
 });
 
