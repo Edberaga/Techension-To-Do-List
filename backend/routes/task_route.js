@@ -36,10 +36,10 @@ router.get('/search', async (req, res) => {
 // Route to add a new task
 router.post('/', async (req, res) => {
     try {
-        const { title, note, status, email } = req.body;
+        const { title, note, status, id } = req.body;
 
         // Find the user by email
-        const existUser = await User.findOne({ email });
+        const existUser = await User.findById(id);
         if (!existUser) {
             return res.status(404).json({ message: 'User not found.' });
         }
@@ -65,24 +65,21 @@ router.post('/', async (req, res) => {
 // Route to update task
 router.put('/:id', async (req, res) => {
     try {
-        const { title, note, status, email  } = req.body;
-        const existUser = await User.findOne({ email }); // Find the user by email
-        if (existUser) {
-            const updatedTask = await Task.findByIdAndUpdate(req.params.id, { title, note, status }, { new: true });
-            res.status(200).json({ updatedTask });
-        }
+        const {title, note, status} = req.body;
+        const updatedTask = await Task.findByIdAndUpdate(req.params.id, { title, note, status });
+        updatedTask.save().then(() => res.status(200).json({ message: "Task Updated" }));
     } catch (err) {
         console.error(`Server Error during Adding new task. Error: ${err}`);
         return res.status(500).json({ message: `Server Error during Updating task. Error: ${err.message}` });
     }
 });
 
-// Route to update task
+// Route to delete task
 router.delete('/:id', async (req, res) => {
     try {
-        const { email } = req.body;
-        const existUser = await User.findOneAndUpdate(
-            { email },
+        const { id } = req.body;
+        const existUser = await User.findByIdAndUpdate(
+            id,
             { $pull: { tasks: req.params.id}}
         );
         if (existUser) {
