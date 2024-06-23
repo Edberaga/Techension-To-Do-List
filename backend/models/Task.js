@@ -10,6 +10,11 @@ const TaskSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  status: {
+    type: String,
+    required: true,
+    default: 'pending',
+  },
   user: {
     type: mongoose.Types.ObjectId,
     ref: "User",

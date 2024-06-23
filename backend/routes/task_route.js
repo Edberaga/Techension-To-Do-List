@@ -36,7 +36,7 @@ router.get('/search', async (req, res) => {
 // Route to add a new task
 router.post('/', async (req, res) => {
     try {
-        const { title, note, email } = req.body;
+        const { title, note, status, email } = req.body;
 
         // Find the user by email
         const existUser = await User.findOne({ email });
@@ -45,7 +45,7 @@ router.post('/', async (req, res) => {
         }
 
         // Create a new task with the provided details
-        const newTask = new Task({ title, note, user: existUser._id });
+        const newTask = new Task({ title, note, status, user: existUser._id });
 
         // Save the task to the database
         await newTask.save();
@@ -65,10 +65,10 @@ router.post('/', async (req, res) => {
 // Route to update task
 router.put('/:id', async (req, res) => {
     try {
-        const { title, note, email } = req.body;
+        const { title, note, status, email  } = req.body;
         const existUser = await User.findOne({ email }); // Find the user by email
         if (existUser) {
-            const updatedTask = await Task.findByIdAndUpdate(req.params.id, { title, note }, { new: true });
+            const updatedTask = await Task.findByIdAndUpdate(req.params.id, { title, note, status }, { new: true });
             res.status(200).json({ updatedTask });
         }
     } catch (err) {

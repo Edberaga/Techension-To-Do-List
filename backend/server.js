@@ -4,6 +4,7 @@ const connectDB = require('./config/db');   // Config for MongoDB database conne
 const dotenv = require('dotenv');           // Module to load environment variables (for security to hide API key from repository)
 const cors = require('cors');               // Module to enable Cross-Origin Resource Sharing
 const auth = require("./routes/auth");
+
 dotenv.config();    // Load environment variables from .env file
 connectDB();        // Function from db.js to connect MongoDB database
 
@@ -14,7 +15,7 @@ app.use(express.json()); // to parse every incoming JSON requests
 app.use(cors());         // to enable CORS (Cross-Origin Resource Sharing)
 
 app.use('/api/tasks', require('./routes/task_route')); // Define routes for tasks CRUD operation
-app.use("/api/v1", auth);           // Define routes for authentication
+app.use("/api/auth", auth);           // Define routes for authentication
 const PORT = 5000; // Set the port for the server to listen on, defaulting to 5000
 
 app.get("/", (req, res) => {
